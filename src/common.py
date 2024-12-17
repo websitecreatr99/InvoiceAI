@@ -1,4 +1,4 @@
-from ..app import logger
+from .logger import logging
 from pydantic import BaseModel, Field, ValidationError
 
 class DataExtractionHandler:
@@ -13,13 +13,13 @@ class DataExtractionHandler:
         Returns:
             str: Validated data in JSON format or error message in case of validation failure.
         """
-        logger.debug("Validating extracted data against the schema.")
+        logging.debug("Validating extracted data against the schema.")
         try:
             parsed_data = Extraction(**data)
-            logger.info("Data validation successful.")
+            logging.info("Data validation successful.")
             return parsed_data.json(indent=4)
         except ValidationError as e:
-            logger.error(f"Validation Error: {e}")
+            logging.error(f"Validation Error: {e}")
             return f"Validation Error: {e}"
 
     def save_json_to_file(self, json_data: str, filename: str):
@@ -30,10 +30,10 @@ class DataExtractionHandler:
             json_data (str): JSON string to save.
             filename (str): Name of the file to save the JSON data.
         """
-        logger.debug(f"Saving JSON data to file: {filename}")
+        logging.debug(f"Saving JSON data to file: {filename}")
         try:
             with open(filename, 'w') as file:
                 file.write(json_data)
-            logger.info(f"JSON data successfully saved to {filename}")
+            logging.info(f"JSON data successfully saved to {filename}")
         except Exception as e:
-            logger.error(f"Error saving JSON data to file: {e}")
+            logging.error(f"Error saving JSON data to file: {e}")
