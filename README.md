@@ -49,7 +49,7 @@ text
 
 ## 📸 Preview Screenshot
 <p align="center">
-  <img src="assets/Screenshot 2025-08-28 124523.png" alt="InvoiceAI Preview" width="700">
+  <img src="assets/Screenshot 2025-08-28 125448.png" alt="InvoiceAI Preview" width="700">
 </p>
 
 ---
