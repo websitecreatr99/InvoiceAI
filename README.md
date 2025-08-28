@@ -1,6 +1,6 @@
 # 📄 Invoice Extractor from Unstructured PDF Data
 
-## InvoiceAI (PDF → Structured Data Extractor)
+## InvoiceAI (PDF → Unstructured Data Extractor)
 
 InvoiceAI is a lightweight tool that extracts **structured data** (headers, line items, schema) from **unstructured PDFs** using **OCR + AI**.  
 It’s designed for **invoices, purchase orders, and other business documents** where accuracy and structure matter.
