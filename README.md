@@ -1,8 +1,8 @@
 # 📄 Invoice Extractor from Unstructured PDF Data
 
-## ClearDocs (PDF → Structured Data Extractor)
+## InvoiceAI (PDF → Structured Data Extractor)
 
-ClearDocs is a lightweight tool that extracts **structured data** (headers, line items, schema) from **unstructured PDFs** using **OCR + AI**.  
+InvoiceAI is a lightweight tool that extracts **structured data** (headers, line items, schema) from **unstructured PDFs** using **OCR + AI**.  
 It’s designed for **invoices, purchase orders, and other business documents** where accuracy and structure matter.
 
 ---
@@ -13,8 +13,8 @@ Follow these steps to set up and run the project locally.
 
 ### 1️⃣ Clone the Repository
 
-git clone https://github.com/your-username/cleardocs.git
-cd cleardocs
+git clone https://github.com/your-username/InvoiceAI.git
+cd InvoiceAI
 
 text
 
@@ -49,7 +49,7 @@ text
 
 ## 📸 Preview Screenshot
 <p align="center">
-  <img src="static/preview.png" alt="ClearDocs Preview" width="700">
+  <img src="C:/Users/kisha/OneDrive/Desktop/revalgo assignment/revalgo-assignment/Screenshot 2025-08-28 101650.png" alt="InvoiceAI Preview" width="700">
 </p>
 
 ---
@@ -82,4 +82,3 @@ Free to use and modify.
 
 ---
 
-💡 **Tip:** Replace `static/preview.png` with your actual screenshot image path!
