@@ -49,7 +49,7 @@ text
 
 ## 📸 Preview Screenshot
 <p align="center">
-  <img src="C:/Users/kisha/OneDrive/Desktop/revalgo assignment/revalgo-assignment/Screenshot 2025-08-28 101650.png" alt="InvoiceAI Preview" width="700">
+  <img src="assets/Screenshot 2025-08-28 101650.png" alt="InvoiceAI Preview" width="700">
 </p>
 
 ---
