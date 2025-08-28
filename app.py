@@ -427,10 +427,10 @@ def process_files():
     results = []
 
     # 1️⃣ Run OCR pipeline if needed
-    # try:
-    #     subprocess.run(["python", "ocr_pipeline.py"], check=True)
-    # except subprocess.CalledProcessError as e:
-    #     return jsonify({"success": False, "error": f"OCR pipeline failed: {str(e)}"})
+    try:
+        subprocess.run(["python", "ocr_pipeline.py"], check=True)
+    except subprocess.CalledProcessError as e:
+        return jsonify({"success": False, "error": f"OCR pipeline failed: {str(e)}"})
 
     # 2️⃣ Collect structured outputs
     for filename in os.listdir(STRUCTURED_OUTPUT_FOLDER):
