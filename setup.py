@@ -1,7 +1,7 @@
 from setuptools import find_packages, setup
 
 setup(
-    name = 'Revalgo Assignment',
+    name = 'Image Data Extraction',
     version= '0.0.0',
     author= 'Kishan Pahadiya',
     author_email= 'kishanvir4321@gmail.com',

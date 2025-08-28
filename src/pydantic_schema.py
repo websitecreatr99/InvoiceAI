@@ -1,56 +1,71 @@
 from pydantic import BaseModel, Field, ValidationError
 from typing import List, Optional
 
-# Define the Pydantic models for the schema
+# Define the Pydantic models with Field descriptions and default values set to None
+
 class Address(BaseModel):
-    name: Optional[str]
-    address1: Optional[str] = None
-    address2: Optional[str] = None
-    address3: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    country: Optional[str] = None
-    country_code: Optional[str] = None
-    zip: Optional[str] = None
+    name: Optional[str] = Field(default=None, description="Name associated with the address")
+    address1: Optional[str] = Field(default=None, description="Primary address line")
+    address2: Optional[str] = Field(default=None, description="Secondary address line")
+    address3: Optional[str] = Field(default=None, description="Tertiary address line (if applicable)")
+    city: Optional[str] = Field(default=None, description="City name")
+    state: Optional[str] = Field(default=None, description="State or region")
+    country: Optional[str] = Field(default=None, description="Country name")
+    country_code: Optional[str] = Field(default=None, description="ISO country code")
+    zip: Optional[str] = Field(default=None, description="Postal/ZIP code")
 
 class Contact(BaseModel):
-    name: Optional[str] = None
-    email: Optional[str] = None
-    contact_number: Optional[str] = None
+    name: Optional[str] = Field(default=None, description="Contact's full name")
+    email: Optional[str] = Field(default=None, description="Contact's email address")
+    contact_number: Optional[str] = Field(default=None, description="Contact's phone number")
 
 class Header(BaseModel):
-    ship_to: Optional[Address] = None
-    bill_to: Optional[Address] = None
-    vendor: Optional[Address] = None
-    buyer_contact: Optional[Contact] = None
-    shipping_contact: Optional[Contact] = None
-    project_number: Optional[str] = None
-    purchase_order_number: Optional[str] = None
-    job_name: Optional[str] = None
-    job_number: Optional[str] = None
-    quote_number: Optional[str] = None
-    date_ordered: Optional[str] = None
-    delivery_date: Optional[str] = None
-    shipping_instructions: Optional[str] = None
-    notes: Optional[str] = None
-    ship_via: Optional[str] = None
-    payment_terms: Optional[str] = None
+    ship_to: Optional[Address] = Field(default=None, description="Shipping address details")
+    bill_to: Optional[Address] = Field(default=None, description="Billing address details")
+    vendor: Optional[Address] = Field(default=None, description="Vendor details")
+    buyer_contact: Optional[Contact] = Field(default=None, description="Contact details for the buyer")
+    shipping_contact: Optional[Contact] = Field(default=None, description="Contact details for shipping")
+    # project_number: Optional[str] = Field(default=None, description="Unique project identifier")
+    # purchase_order_number: Optional[str] = Field(default=None, description="Purchase order reference")
+    # job_name: Optional[str] = Field(default=None, description="Name of the job associated with the order")
+    # job_number: Optional[str] = Field(default=None, description="Unique identifier for the job")
+    # quote_number: Optional[str] = Field(default=None, description="Quote reference number")
+    # date_ordered: Optional[str] = Field(default=None, description="Date the order was placed")
+    # delivery_date: Optional[str] = Field(default=None, description="Expected delivery date")
+    # shipping_instructions: Optional[str] = Field(default=None, description="Special shipping instructions")
+    # notes: Optional[str] = Field(default=None, description="Additional notes for the order")
+    # ship_via: Optional[str] = Field(default=None, description="Shipping method")
+    # payment_terms: Optional[str] = Field(default=None, description="Payment terms for the order")
 
-class LineItem(BaseModel):
-    line_no: Optional[str] = None
-    on_hand: Optional[str] = None
-    to_buy: Optional[str] = None
-    quantity: Optional[int] = None
-    uom: Optional[str] = None
-    unit_price: Optional[str] = None
-    currency: Optional[str] = None
-    part_numbers: Optional[str] = None
-    product_description: Optional[str] = None
-    spell_corrected_product_description: Optional[str] = None
+# class LineItem(BaseModel):
+#     line_no: Optional[str] = Field(default=None, description="Line item number")
+#     on_hand: Optional[str] = Field(default=None, description="Quantity on hand")
+#     to_buy: Optional[str] = Field(default=None, description="Quantity to be purchased")
+#     quantity: Optional[int] = Field(default=None, description="Total quantity of the item")
+#     uom: Optional[str] = Field(default=None, description="Unit of measure (e.g., PCS, KG)")
+#     unit_price: Optional[str] = Field(default=None, description="Price per unit")
+#     currency: Optional[str] = Field(default=None, description="Currency of the unit price")
+#     part_numbers: Optional[str] = Field(default=None, description="Part number for the item")
+#     product_description: Optional[str] = Field(default=None, description="Description of the product")
+#     spell_corrected_product_description: Optional[str] = Field(default=None, description="Corrected product description (if applicable)")
 
 class ExtractionItem(BaseModel):
-    header: Optional[Header] = None
-    line_items: Optional[List[LineItem]] = None
+    header: Optional[Header] = Field(default=None, description="Metadata and general order information")
+    # line_items: Optional[List[LineItem]] = Field(default=None, description="List of items included in the order")
 
 class Extraction(BaseModel):
-    extraction: List[ExtractionItem]
+    extraction: List[ExtractionItem] = Field(..., description="List of extracted orders")
+    
+# Example function to validate data
+def validate_data(input_data: dict):
+    try:
+        # Parse and validate data
+        validated_data = Extraction(**input_data)
+        print("Validation successful!")
+        return validated_data
+    except ValidationError as e:
+        # Handle validation errors
+        print("Validation failed:")
+        for error in e.errors():
+            print(f"Field: {error['loc']}, Error: {error['msg']}, Type: {error['type']}")
+        raise e  # Optionally re-raise the exception for further handling

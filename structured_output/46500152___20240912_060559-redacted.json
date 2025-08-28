@@ -1,0 +1,160 @@
+{
+    "extraction": [
+        {
+            "header": {
+                "ship_to": {
+                    "name": "Derek",
+                    "address1": "Crown Point Rd",
+                    "address2": null,
+                    "address3": null,
+                    "city": "Man",
+                    "state": null,
+                    "country": null,
+                    "country_code": null,
+                    "zip": null
+                },
+                "bill_to": null,
+                "vendor": null,
+                "buyer_contact": {
+                    "name": "Brent",
+                    "email": null,
+                    "contact_number": "(816)"
+                },
+                "shipping_contact": null,
+                "project_number": null,
+                "purchase_order_number": null,
+                "job_name": null,
+                "job_number": "46500",
+                "quote_number": null,
+                "date_ordered": "10/25",
+                "delivery_date": null,
+                "shipping_instructions": "DELIVERY INSTRUCTIONS Detached Caroge Only Detoc/Reset ather SEE 2nd page for measurrents Profect Gutters",
+                "notes": "If there are any questions on scheduling or delivery, please call the production manager, or email Production@RoofsByAspen.com",
+                "ship_via": null,
+                "payment_terms": null
+            },
+            "line_items": [
+                {
+                    "line_no": null,
+                    "on_hand": null,
+                    "to_buy": null,
+                    "quantity": null,
+                    "uom": null,
+                    "unit_price": null,
+                    "currency": null,
+                    "part_numbers": null,
+                    "product_description": "Metal -white so panels- 16'7",
+                    "spell_corrected_product_description": null
+                },
+                {
+                    "line_no": null,
+                    "on_hand": null,
+                    "to_buy": null,
+                    "quantity": null,
+                    "uom": null,
+                    "unit_price": null,
+                    "currency": null,
+                    "part_numbers": null,
+                    "product_description": "gable trim ridge 3/12",
+                    "spell_corrected_product_description": null
+                },
+                {
+                    "line_no": null,
+                    "on_hand": null,
+                    "to_buy": null,
+                    "quantity": 9,
+                    "uom": null,
+                    "unit_price": null,
+                    "currency": null,
+                    "part_numbers": null,
+                    "product_description": "eave 3/10 inside closures",
+                    "spell_corrected_product_description": null
+                },
+                {
+                    "line_no": null,
+                    "on_hand": null,
+                    "to_buy": null,
+                    "quantity": 28,
+                    "uom": null,
+                    "unit_price": null,
+                    "currency": null,
+                    "part_numbers": null,
+                    "product_description": "outsid closures",
+                    "spell_corrected_product_description": null
+                },
+                {
+                    "line_no": null,
+                    "on_hand": null,
+                    "to_buy": null,
+                    "quantity": null,
+                    "uom": null,
+                    "unit_price": null,
+                    "currency": null,
+                    "part_numbers": null,
+                    "product_description": "high terp boot-68",
+                    "spell_corrected_product_description": null
+                },
+                {
+                    "line_no": null,
+                    "on_hand": null,
+                    "to_buy": null,
+                    "quantity": null,
+                    "uom": null,
+                    "unit_price": null,
+                    "currency": null,
+                    "part_numbers": null,
+                    "product_description": "%\" Insulation boord",
+                    "spell_corrected_product_description": null
+                },
+                {
+                    "line_no": null,
+                    "on_hand": null,
+                    "to_buy": null,
+                    "quantity": 8,
+                    "uom": null,
+                    "unit_price": null,
+                    "currency": null,
+                    "part_numbers": null,
+                    "product_description": "4^x8 bogs panels-wood",
+                    "spell_corrected_product_description": null
+                },
+                {
+                    "line_no": null,
+                    "on_hand": null,
+                    "to_buy": null,
+                    "quantity": 5,
+                    "uom": null,
+                    "unit_price": null,
+                    "currency": null,
+                    "part_numbers": null,
+                    "product_description": "grip-2 bags stitch screus",
+                    "spell_corrected_product_description": null
+                },
+                {
+                    "line_no": null,
+                    "on_hand": null,
+                    "to_buy": null,
+                    "quantity": null,
+                    "uom": null,
+                    "unit_price": null,
+                    "currency": null,
+                    "part_numbers": null,
+                    "product_description": "oroll butyl tope",
+                    "spell_corrected_product_description": null
+                },
+                {
+                    "line_no": null,
+                    "on_hand": null,
+                    "to_buy": null,
+                    "quantity": 2,
+                    "uom": null,
+                    "unit_price": null,
+                    "currency": null,
+                    "part_numbers": null,
+                    "product_description": "caulkirg tooch up",
+                    "spell_corrected_product_description": null
+                }
+            ]
+        }
+    ]
+}
