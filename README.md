@@ -13,7 +13,7 @@ Follow these steps to set up and run the project locally.
 
 ### 1️⃣ Clone the Repository
 
-git clone https://github.com/your-username/InvoiceAI.git
+git clone https://github.com/websitecreatr99/InvoiceAI.git
 cd InvoiceAI
 
 text
