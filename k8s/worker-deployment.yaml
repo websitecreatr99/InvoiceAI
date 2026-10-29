@@ -1,0 +1,116 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: invoiceai-worker
+  labels:
+    app: invoiceai-worker
+spec:
+  # Starting size; KEDA (worker-keda.yaml) or the HPA (worker-hpa-cpu.yaml) takes over scaling.
+  replicas: 2
+  selector:
+    matchLabels:
+      app: invoiceai-worker
+  template:
+    metadata:
+      labels:
+        app: invoiceai-worker
+    spec:
+      # Lets an in-flight PDF finish and ack on scale-down; otherwise RabbitMQ re-queues it.
+      terminationGracePeriodSeconds: 600
+      containers:
+        - name: worker
+          image: ghcr.io/kishannextq/hackathon-worker:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: invoiceai-secrets
+                  key: RABBITMQ_URL
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: invoiceai-secrets
+                  key: GEMINI_API_KEY
+            - name: GOOGLE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: invoiceai-secrets
+                  key: GEMINI_API_KEY
+            - name: WORKER_PREFETCH
+              value: "1"
+            # Jobs carry a file_key into this bucket. On EKS prefer IRSA (a service account role)
+            # over the static AWS keys below; S3_ENDPOINT_URL is for MinIO / GCS interop / R2.
+            - name: STORAGE_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: invoiceai-secrets
+                  key: STORAGE_BUCKET
+                  optional: true
+            - name: S3_ENDPOINT_URL
+              valueFrom:
+                secretKeyRef:
+                  name: invoiceai-secrets
+                  key: S3_ENDPOINT_URL
+                  optional: true
+            - name: AWS_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: invoiceai-secrets
+                  key: AWS_REGION
+                  optional: true
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: invoiceai-secrets
+                  key: AWS_ACCESS_KEY_ID
+                  optional: true
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: invoiceai-secrets
+                  key: AWS_SECRET_ACCESS_KEY
+                  optional: true
+            # Per-document limits; keep JOB_TIMEOUT_SECONDS below terminationGracePeriodSeconds
+            # so a scale-down never kills a job that is still within its time budget.
+            - name: MAX_FILE_MB
+              value: "25"
+            - name: MAX_PAGES
+              value: "30"
+            - name: JOB_TIMEOUT_SECONDS
+              value: "540"
+            # LLM cost/latency tracing; omit these keys from the secret to disable Langfuse.
+            - name: LANGFUSE_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: invoiceai-secrets
+                  key: LANGFUSE_PUBLIC_KEY
+                  optional: true
+            - name: LANGFUSE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: invoiceai-secrets
+                  key: LANGFUSE_SECRET_KEY
+                  optional: true
+            - name: LANGFUSE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: invoiceai-secrets
+                  key: LANGFUSE_HOST
+                  optional: true
+          ports:
+            - name: metrics
+              containerPort: 9100
+          resources:
+            requests:
+              cpu: "1"
+              memory: 2Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          livenessProbe:
+            exec:
+              command: ["python", "-c", "import os, time, sys; sys.exit(time.time() - os.path.getmtime(os.environ['ALIVE_FILE']) > 60)"]
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 3
