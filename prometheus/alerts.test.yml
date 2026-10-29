@@ -1,0 +1,63 @@
+# Unit tests for the alert rules: promtool test rules prometheus/alerts.test.yml
+rule_files:
+  - alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  - name: high PDF failure rate fires, healthy rate doesn't
+    interval: 1m
+    input_series:
+      - series: 'invoiceai_worker_pdfs_total{status="error", instance="w1"}'
+        values: "0+3x40"
+      - series: 'invoiceai_worker_pdfs_total{status="ok", instance="w1"}'
+        values: "0+7x40"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: InvoiceAIPdfFailureRate
+        exp_alerts: []
+      - eval_time: 35m
+        alertname: InvoiceAIPdfFailureRate
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: More than 20% of PDFs are failing extraction
+              description: Failure ratio is 30%. Check worker logs in Grafana.
+
+  - name: no workers
+    interval: 1m
+    input_series:
+      - series: 'up{job="invoiceai-worker", instance="w1"}'
+        values: "1 1 0 0 0 0 0"
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: InvoiceAINoWorkers
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: InvoiceAINoWorkers
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: No InvoiceAI workers are running
+              description: Uploaded PDFs will queue up in RabbitMQ and never be processed.
+
+  - name: LLM cost spike
+    interval: 1m
+    input_series:
+      # $0.10 per minute -> $6 per hour
+      - series: 'invoiceai_llm_cost_usd_total{model="gemini-2.5-flash", instance="w1"}'
+        values: "0+0.1x90"
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: InvoiceAILlmCostSpike
+        exp_alerts: []
+      - eval_time: 75m
+        alertname: InvoiceAILlmCostSpike
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: LLM spend above $5 in the last hour
+              description: "Estimated spend: $6.00."

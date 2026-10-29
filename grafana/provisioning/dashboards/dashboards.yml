@@ -1,0 +1,9 @@
+apiVersion: 1
+
+providers:
+  - name: InvoiceAI
+    folder: InvoiceAI
+    type: file
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards

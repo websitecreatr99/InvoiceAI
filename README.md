@@ -1,40 +1,120 @@
-# InvoiceAI Frontend
+# 📈 InvoiceAI Tracking
 
-Next.js UI for InvoiceAI. Drop in invoices, purchase orders or other business documents, optionally name the columns you want, and watch the extracted data arrive file by file. Every value links back to the document line it was read from.
+Observability for InvoiceAI: **metrics and alerts** (Prometheus), **logs** (Loki), **dashboards** (Grafana) and **LLM cost and latency per request** (Langfuse).
 
-## Running
+This branch holds only the monitoring stack. The services it watches report their own data:
 
-The app proxies `/api/*` to the FastAPI app (`app.py` on the `fastapi` branch) at `http://127.0.0.1:5000`. Set `BACKEND_URL` to point elsewhere. Processing needs the rest of the stack (RabbitMQ and at least one worker): see the `fastapi` branch README.
+| Branch | Exposes |
+|--------|---------|
+| `fastapi` | `GET /metrics`: requests and latency per route, jobs and documents submitted, queue publish failures, worker results, end-to-end job duration |
+| `worker` | `:9100/metrics`: documents processed by status (`ok` / `error` / `retry`), jobs retried and dead-lettered, time per document and per stage (OCR / LLM / validation), documents in progress, LLM calls, latency, tokens and estimated USD cost. Plus **Langfuse** traces when `LANGFUSE_*` keys are set |
+| RabbitMQ | Built-in Prometheus plugin on `:15692`: queue depth for `invoice.jobs`, `invoice.jobs.retry`, `invoice.jobs.dlq` and `invoice.results` |
 
-With the backend running:
+The *Queue depth* panel covers every `invoice.*` queue, including the retry queue and the DLQ. `invoiceai_worker_jobs_retried_total` and `invoiceai_worker_jobs_dead_lettered_total` aren't on the dashboard or in any alert yet; query them in Prometheus or Grafana Explore. Every other metric the dashboard and alerts reference is exported by the API or the worker, all at zero from startup.
 
-```bash
-npm install
-npm run dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000).
+## 🧭 What goes where
 
-Checks: `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+    API ──┐                        ┌──> Prometheus ──> alert rules
+    workers (1..N) ──── /metrics ──┤                     │
+    RabbitMQ ─────┘                │                     v
+                                   │                  Grafana  <── Loki <── Alloy <── container logs
+    workers ── Gemini spans ───────┴──> Langfuse (cost, tokens, latency per call)
 
-## How it works
+- **Prometheus** answers "how is the system doing": throughput, error rates, latency percentiles, queue backlog, spend per hour.
+- **Loki** stores every container's logs (collected by Grafana Alloy, labelled by compose service and log level), searchable next to the metrics in Grafana.
+- **Langfuse** answers "what happened on this request": one trace per PDF, grouped into a session per job, with OCR / LLM / validation spans and the exact Gemini tokens, cost and latency.
+- Prometheus doesn't store logs; that's why Loki is here.
 
-1. **Upload.** Pick or drop files. Accepted types mirror the API's `SUPPORTED_EXTENSIONS`: PDFs and images (`.png .jpg .jpeg .tif .tiff .bmp .webp`) are OCR'd; `.txt .csv .tsv .md .json .xml .html .htm .docx` are read as text. Duplicates (same name and size) are ignored.
-2. **Columns (optional).** Add the fields you want as chips (Enter or comma adds one; pasting a list adds them all). Leave it empty to use the invoice schema (header + line items).
-3. **Run.** The UI sends one `POST /jobs` (multipart `files`, plus `columns` as a JSON list), so every run is its own job and concurrent users never share uploads. It then polls `GET /jobs/{job_id}` every 1.5 s (for up to 15 minutes) and shows each file's result as soon as its worker finishes.
-4. **Pipeline stepper.** Upload → OCR → AI → Done. The workers don't report the OCR → AI hand-off, so that step is estimated. Failed and partly failed runs show which step went wrong and how many documents were affected.
-5. **Results.** Three views:
-   - **Table**: one row per extracted row across all files, each value with its source page and line. Exports as CSV.
-   - **Visual**: header and line-item cards (invoice schema only, so it's hidden when you name your own columns).
-   - **JSON**: the raw output. Copy or download.
+## 🖥️ Grafana dashboard: *InvoiceAI overview*
 
-## Structure
+| Row | Panels |
+|-----|--------|
+| Overview | PDFs processed (1h), failure rate, p95 time per PDF, LLM cost (24h), queue backlog, workers up |
+| API | Requests/s by route, error responses, p95 latency by route |
+| Pipeline | PDFs/min ok vs error, p95 per stage (where the time goes), job p50/p95 end to end, queue depth, PDFs in progress per worker (load balance) |
+| LLM cost & latency | Spend per hour, tokens/min, LLM p50/p95, calls ok vs error, average cost per PDF, link to Langfuse |
+| Logs | Errors and warnings across services, full log search filtered by service |
 
-- `src/app/page.tsx` – page layout, job submission and polling, failure summary
-- `src/components/UploadPanel.tsx` – file picker and the columns input
-- `src/components/Pipeline.tsx` – pipeline stepper, including failed and partly failed steps
-- `src/components/ResultsPanel.tsx` – file selector, Table / Visual / JSON views, copy and download
-- `src/components/FieldsTable.tsx` – the table view and its CSV export
-- `src/components/DocumentView.tsx`, `JsonView.tsx` – visual and JSON views
-- `src/lib/api.ts` – `POST /jobs` and `GET /jobs/{job_id}`, accepted file types, parsing of `structured_data`
-- `src/lib/types.ts` – TypeScript mirror of the worker's Pydantic models (`src/common.py` on the `worker` branch) and the API's job status
+## 🚨 Alerts (`prometheus/alerts.yml`)
+
+| Alert | Fires when |
+|-------|-----------|
+| `InvoiceAIApiDown` | API scrape fails for 1 min |
+| `InvoiceAINoWorkers` | No worker is up for 2 min (PDFs will pile up) |
+| `InvoiceAIApiHighErrorRate` | > 5% of requests return 5xx for 5 min |
+| `InvoiceAIApiSlow` | p95 > 1 s on any route except `/process` for 10 min |
+| `InvoiceAIQueueUnavailable` | API failed to publish to RabbitMQ (users get 503) |
+| `InvoiceAIQueueBacklog` | > 50 PDFs waiting for 10 min |
+| `InvoiceAIPdfFailureRate` | > 20% of PDFs fail for 15 min |
+| `InvoiceAISlowExtraction` | p95 per PDF > 5 min for 15 min |
+| `InvoiceAILlmErrors` | Gemini calls failing for 10 min |
+| `InvoiceAILlmCostSpike` | Estimated spend > $5 in the last hour (edit to your budget) |
+
+Rules have unit tests in `prometheus/alerts.test.yml` (`promtool test rules`). Alerts show in Prometheus and Grafana. To get notified, add an Alertmanager and point Prometheus at it.
+
+---
+
+## 🚀 Run with Docker Compose
+
+1. Start the app from the `fastapi` branch (creates the `invoiceai` network):
+
+        docker compose up -d
+
+2. From this branch:
+
+        cp .env.example .env
+        docker compose up -d                      # Prometheus, Loki, Alloy, Grafana
+        docker compose --profile langfuse up -d   # optional: self-hosted Langfuse
+
+3. Open:
+
+| Service | URL | Login |
+|---------|-----|-------|
+| Grafana | http://localhost:3001 | `admin` / `admin` (from `.env`) |
+| Prometheus | http://localhost:9090 | – |
+| Langfuse | http://localhost:3002 | `LANGFUSE_ADMIN_EMAIL` / `LANGFUSE_ADMIN_PASSWORD` |
+
+4. Point the workers at Langfuse by adding to the `fastapi` branch's `.env` (the worker service reads it):
+
+        LANGFUSE_PUBLIC_KEY=pk-lf-invoiceai-local
+        LANGFUSE_SECRET_KEY=sk-lf-invoiceai-local
+        LANGFUSE_HOST=http://langfuse-web:3000
+
+   With **Langfuse Cloud** instead, skip the `langfuse` profile and use your project's keys with `LANGFUSE_HOST=https://cloud.langfuse.com`.
+
+Langfuse computes cost from its model price table. The Prometheus cost metric is an estimate from token counts at the worker's `LLM_INPUT_USD_PER_1M` / `LLM_OUTPUT_USD_PER_1M` (Gemini 2.5 Flash list prices by default).
+
+## ☸️ Kubernetes
+
+With [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack):
+
+    kubectl apply -f k8s/podmonitors.yaml -f k8s/prometheus-rule.yaml
+    kubectl create configmap invoiceai-dashboard --from-file=grafana/dashboards/invoiceai-overview.json
+    kubectl label configmap invoiceai-dashboard grafana_dashboard=1
+
+Logs: install the `grafana/loki` and `grafana/alloy` Helm charts. Langfuse: the `langfuse/langfuse` Helm chart or Langfuse Cloud, with the keys in the `invoiceai-secrets` Secret (see the `worker` branch).
+
+`k8s/prometheus-rule.yaml` is generated from `prometheus/alerts.yml`: run `python scripts/gen_k8s_rules.py` after editing the alerts.
+
+## 🧪 CI
+
+`.github/workflows/ci.yml` on `tracking`: Prometheus config check and alert unit tests (`promtool`), Loki and Alloy config validation, dashboard JSON and k8s rules sync, compose validation; then starts Prometheus, Loki and Grafana and checks that rules, data sources and the dashboard are loaded.
+
+## 📂 Structure
+
+    ├── docker-compose.yml           # Prometheus, Loki, Alloy, Grafana (+ Langfuse profile)
+    ├── prometheus/
+    │   ├── prometheus.yml           # scrape targets: api, workers (DNS), rabbitmq
+    │   ├── alerts.yml               # alert rules
+    │   └── alerts.test.yml          # promtool unit tests for the rules
+    ├── loki/config.yml
+    ├── alloy/config.alloy           # Docker log collection -> Loki
+    ├── grafana/
+    │   ├── provisioning/            # data sources + dashboard provider
+    │   └── dashboards/invoiceai-overview.json
+    ├── k8s/                         # PodMonitors, PrometheusRule
+    └── scripts/
+        ├── gen_k8s_rules.py         # alerts.yml -> k8s/prometheus-rule.yaml
+        └── build_dashboard.py       # regenerates grafana/dashboards/invoiceai-overview.json

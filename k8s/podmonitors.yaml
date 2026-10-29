@@ -1,0 +1,31 @@
+# For clusters running kube-prometheus-stack (Prometheus Operator).
+# `release` must match your Helm release name so the operator selects these.
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: invoiceai-api
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: invoiceai-api
+  podMetricsEndpoints:
+    - targetPort: 5000
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: invoiceai-worker
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: invoiceai-worker
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s

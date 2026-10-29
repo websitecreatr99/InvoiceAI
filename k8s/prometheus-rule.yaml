@@ -1,0 +1,98 @@
+# Generated from prometheus/alerts.yml by scripts/gen_k8s_rules.py; do not edit.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: invoiceai
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+  - name: invoiceai-availability
+    rules:
+    - alert: InvoiceAIApiDown
+      expr: up{job="invoiceai-api"} == 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: InvoiceAI API is not responding to scrapes
+        description: '{{ $labels.instance }} has been down for more than a minute.'
+    - alert: InvoiceAINoWorkers
+      expr: sum(up{job="invoiceai-worker"}) == 0 or absent(up{job="invoiceai-worker"})
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: No InvoiceAI workers are running
+        description: Uploaded PDFs will queue up in RabbitMQ and never be processed.
+  - name: invoiceai-api
+    rules:
+    - alert: InvoiceAIApiHighErrorRate
+      expr: "sum(rate(invoiceai_api_requests_total{status=~\"5..\"}[5m]))\n  / sum(rate(invoiceai_api_requests_total[5m]))\
+        \ > 0.05\n"
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: More than 5% of API requests are failing
+        description: 5xx ratio is {{ $value | humanizePercentage }}.
+    - alert: InvoiceAIApiSlow
+      expr: "histogram_quantile(0.95,\n  sum by (le, route) (rate(invoiceai_api_request_duration_seconds_bucket{route!~\"\
+        /process|/metrics\"}[5m]))\n) > 1\n"
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: API p95 latency above 1s on {{ $labels.route }}
+        description: p95 is {{ $value | humanizeDuration }}.
+    - alert: InvoiceAIQueueUnavailable
+      expr: increase(invoiceai_api_publish_failures_total[5m]) > 0
+      labels:
+        severity: critical
+      annotations:
+        summary: API could not publish jobs to RabbitMQ
+        description: Users are getting 503s on upload.
+  - name: invoiceai-pipeline
+    rules:
+    - alert: InvoiceAIQueueBacklog
+      expr: sum(rabbitmq_queue_messages_ready{queue="invoice.jobs"}) > 50
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: '{{ $value }} PDFs waiting for a worker'
+        description: Add worker replicas or check that autoscaling is working.
+    - alert: InvoiceAIPdfFailureRate
+      expr: "sum(rate(invoiceai_worker_pdfs_total{status=\"error\"}[15m]))\n  / sum(rate(invoiceai_worker_pdfs_total[15m]))\
+        \ > 0.2\n"
+      for: 15m
+      labels:
+        severity: warning
+      annotations:
+        summary: More than 20% of PDFs are failing extraction
+        description: Failure ratio is {{ $value | humanizePercentage }}. Check worker logs in Grafana.
+    - alert: InvoiceAISlowExtraction
+      expr: histogram_quantile(0.95, sum by (le) (rate(invoiceai_worker_pdf_duration_seconds_bucket[15m]))) > 300
+      for: 15m
+      labels:
+        severity: warning
+      annotations:
+        summary: p95 time per PDF is above 5 minutes
+        description: p95 is {{ $value | humanizeDuration }}.
+  - name: invoiceai-llm
+    rules:
+    - alert: InvoiceAILlmErrors
+      expr: sum(rate(invoiceai_llm_calls_total{status="error"}[10m])) > 0
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: Gemini calls are failing
+        description: Check the API key, quota and Langfuse traces.
+    - alert: InvoiceAILlmCostSpike
+      expr: sum(increase(invoiceai_llm_cost_usd_total[1h])) > 5
+      labels:
+        severity: warning
+      annotations:
+        summary: LLM spend above $5 in the last hour
+        description: 'Estimated spend: ${{ $value | printf "%.2f" }}.'

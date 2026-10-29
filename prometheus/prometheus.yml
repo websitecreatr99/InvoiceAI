@@ -1,0 +1,32 @@
+# Scrapes the InvoiceAI services on the shared `invoiceai` Docker network
+# (the fastapi branch's docker-compose joins it).
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: invoiceai-api
+    static_configs:
+      - targets: ["api:5000"]
+
+  # Every worker replica: Docker DNS returns one A record per `worker` container,
+  # so scaling with `--scale worker=N` is picked up automatically.
+  - job_name: invoiceai-worker
+    dns_sd_configs:
+      - names: ["worker"]
+        type: A
+        port: 9100
+        refresh_interval: 15s
+
+  # Per-queue depth (invoice.jobs backlog) from RabbitMQ's built-in Prometheus plugin.
+  - job_name: rabbitmq
+    metrics_path: /metrics/per-object
+    static_configs:
+      - targets: ["rabbitmq:15692"]
