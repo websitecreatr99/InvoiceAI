@@ -1,0 +1,61 @@
+# Full system locally: RabbitMQ + API (this branch) + worker pods (worker branch image).
+#   docker compose up -d --build
+#   docker compose up -d --scale worker=4      # more workers for bulk uploads
+# RabbitMQ management UI: http://localhost:15672 (guest/guest)
+# Files travel inline through RabbitMQ unless STORAGE_BUCKET is set in .env (with AWS_* credentials,
+# and S3_ENDPOINT_URL for a non-AWS store); set it to run the stack the way production does.
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/%2F
+      STORAGE_DIR: /app/storage
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-}
+      AWS_REGION: ${AWS_REGION:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+    volumes:
+      - storage:/app/storage
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  worker:
+    # Built and published by the worker branch's CI.
+    image: ${WORKER_IMAGE:-ghcr.io/kishannextq/hackathon-worker:latest}
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/%2F
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    deploy:
+      replicas: ${WORKER_REPLICAS:-2}
+
+volumes:
+  rabbitmq-data:
+  storage:
+
+# Named so the tracking branch's Prometheus/Grafana stack can join and scrape these services.
+networks:
+  default:
+    name: invoiceai
